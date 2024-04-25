@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.*;
 
 public class Computer {
     ArrayList<String> allCoordinates = new ArrayList<>();
@@ -10,6 +11,11 @@ public class Computer {
     int computerHealth = 17;
 
     public String computerHit(){
+        String[] letters = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"};
+        int columns = 10;
+
+        Random rand = new Random();
+
         return "insert coordinate here";
     }
 }

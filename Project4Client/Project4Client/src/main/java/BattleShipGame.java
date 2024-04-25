@@ -17,7 +17,6 @@ public class BattleShipGame {
     }
 
     public Boolean checkAttack(String coordinate, Boolean isComputerTurn){
-
         //computer is attacking the player
         if(isComputerTurn){
             //check the player's coordinates to check if the computer hit any of their ships
@@ -40,11 +39,11 @@ public class BattleShipGame {
                 currentPlayer.playerHealth--;
                 return true;
             }
-
         }
         //player is attacking the computer
         else{
             if(computerPlayer.allCoordinates.contains(coordinate)){
+                System.out.println("This is the boolean value to see if the .getText() is inside the computer's allCoordinates: " + computerPlayer.allCoordinates.contains(coordinate));
                 if(computerPlayer.twoShip.getCoordinates().contains(coordinate)){
                     computerPlayer.twoShip.hitCount++;
                 }else if(computerPlayer.threeShip.getCoordinates().contains(coordinate)){
@@ -56,9 +55,9 @@ public class BattleShipGame {
                 }else if (computerPlayer.fiveShip.getCoordinates().contains(coordinate)){
                     computerPlayer.fiveShip.hitCount++;
                 }
+                computerPlayer.computerHealth--;
+                return true;
             }
-            computerPlayer.computerHealth--;
-            return true;
         }
 
         return false;
