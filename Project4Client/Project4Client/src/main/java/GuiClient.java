@@ -960,13 +960,15 @@ public class GuiClient extends Application{
 
 				attackComputer.setOnAction(d->{
 					String coordinateChosen = button.getText();
+					System.out.println("this is the button.getText() before the checkAttack: " + button.getText());
 					//if it returns true, let them play again and change coordinate to green
 					if (game.checkAttack(coordinateChosen, false)) {
 						button.setStyle("-fx-background-color: green; -fx-text-fill:black;");
 						button.setDisable(true);
 						popUpMessage.setText("You hit a ship!\nChoose a new coordinate");
+						popUpMessage.setTextAlignment(TextAlignment.CENTER);
+						setDisableGridPane("disable");
 						blackOutGrid("enable", playerHits, computerCoords);
-
 					}
 					//missed ship
 					else {
@@ -992,19 +994,11 @@ public class GuiClient extends Application{
 	}
 
 	public void blackOutGrid(String enable, ArrayList<String> hits, ArrayList<Button> buttons){
-//		if (enable.equals("enable")) {
-//			for (int i = 0; i < setShipButtons.size(); i++) {
-//				if (!game.currentPlayer.allCoordinates.contains(setShipButtons.get(i).getText())) {
-//					setShipButtons.get(i).setDisable(false);
-//				}
-//			}
-//		}
-
 		// when it is player's turn, enable the computer grid
 		if(enable.equals("enable")){
 			for(Button button : buttons){
 				//if it is a button that was already hit, do not re-enable
-				if(!hits.contains(button.getText())){
+				if(hits.contains(button.getText())){
 					button.setDisable(true);
 				}
 				else{
