@@ -1,11 +1,10 @@
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 import java.util.HashMap;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -21,29 +20,51 @@ import static javafx.scene.paint.Color.rgb;
 import javafx.scene.image.Image;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
 import javafx.scene.image.ImageView;
 import javafx.stage.WindowEvent;
 
 
 import static javafx.scene.paint.Color.rgb;
 
-public class GuiClient extends Application{
 
-	
+public class GuiClient extends Application{
 	TextField c1;
 	Button b1;
+	Boolean isHorizontal = false, isVertical = false;
 	HashMap<String, Scene> sceneMap;
 	VBox clientBox;
 	Client clientConnection;
 	TextField createUser = new TextField();
 	
 	ListView<String> listItems2;
+	ArrayList<Button> setShipButtons;
+
+	ArrayList<Button> computerCoords = new ArrayList<>();
+	ArrayList<Button> playerCoords = new ArrayList<>();
+
+	GridPane computerCoordsGrid = new GridPane();
+	GridPane playerCoordsGrid = new GridPane();
+
+	BattleShipGame game = new BattleShipGame();
+	Text popUpMessage = new Text("");
+
+	Integer shipPlacedCount = 0;
+
+	Button done = new Button();
+
+	Button vertical = new Button("PLACE VERTICAL");
+	Button horizontal = new Button("PLACE HORIZONTAL");
 
 	public ArrayList<int[]> clickedButtons = new ArrayList<>(); // List to track clicked buttons
 	private int currentShipLength; // Length of the current ship being placed
 	public ArrayList<Integer> availableShips = new ArrayList<>(); // List of available ship lengths
+	Button twoShipButton, threeShipButton, threeShip2Button, fourShipButton, fiveShipButton;
 
+	public ArrayList<String> playerHits = new ArrayList<>(); //keeping track of all the buttons the player clicked when attacking the computer
+	public ArrayList<String> computerHits = new ArrayList<>(); //keeping track of all the buttons the computer clicked when attacking the player
 
 
 	public static void main(String[] args) {
@@ -68,6 +89,7 @@ public class GuiClient extends Application{
 		sceneMap = new HashMap<String, Scene>();
 
 //		sceneMap.put("client", welcomeScreen(primaryStage));
+		//gameScreen (primaryStage);
 		welcomeScreen(primaryStage);
 
 		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
@@ -86,7 +108,7 @@ public class GuiClient extends Application{
 	}
 
 	public void welcomeScreen(Stage primaryStage) throws Exception {
-		primaryStage.setTitle("Welcome to YapaVerse!!!!"); //title for screen
+		primaryStage.setTitle("Welcome to Battleship!!!!"); //title for screen
 
 		//create textMe image
 		InputStream stream = new FileInputStream("src/Images/battleship.gif");
@@ -156,11 +178,21 @@ public class GuiClient extends Application{
 		playWithUser.setOnAction(e->{
 			String tempUserId = createUser.getText(); //grab text from textfield
             try {
-                gameSetUpScreen(primaryStage);
+				setUpScreen(primaryStage);
             } catch (Exception ex) {
 				ex.printStackTrace();
                 throw new RuntimeException(ex);
             }
+		});
+
+		playWithAI.setOnAction(e->{
+			game.versusComputer = true;
+			try {
+				setUpScreen(primaryStage);
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				throw new RuntimeException(ex);
+			}
 		});
 
 		HBox buttonBox = new HBox(20, playWithUser, playWithAI);
@@ -213,8 +245,35 @@ public class GuiClient extends Application{
 	}
 
 	// game setup screen
-	public void gameSetUpScreen(Stage primaryStage) throws Exception {
-		Button done, placeShip;
+	public void setUpScreen(Stage primaryStage) throws Exception {
+
+		twoShipButton = new Button("Select");
+
+		twoShipButton.setStyle("-fx-background-radius: 40;");
+		twoShipButton.setPrefWidth(120);
+		twoShipButton.setPrefHeight(50);
+
+		threeShipButton = new Button("Select");
+		threeShipButton.setStyle("-fx-background-radius: 40;");
+		threeShipButton.setPrefWidth(120);
+		threeShipButton.setPrefHeight(50);
+
+		threeShip2Button = new Button("Select");
+		threeShip2Button.setStyle("-fx-background-radius: 40;");
+		threeShip2Button.setPrefWidth(120);
+		threeShip2Button.setPrefHeight(50);
+
+		fourShipButton = new Button("Select");
+		fourShipButton.setStyle("-fx-background-radius: 40;");
+		fourShipButton.setPrefWidth(120);
+		fourShipButton.setPrefHeight(50);
+
+		fiveShipButton = new Button("Select");
+		fiveShipButton.setStyle("-fx-background-radius: 40;");
+		fiveShipButton.setPrefWidth(120);
+		fiveShipButton.setPrefHeight(50);
+		int setUpShips = 0;
+
 		//create textMe image
 		InputStream stream1 = new FileInputStream("src/Images/2ship.png");
 		InputStream stream2 = new FileInputStream("src/Images/3shipPart1.png");
@@ -222,11 +281,11 @@ public class GuiClient extends Application{
 		InputStream stream4 = new FileInputStream("src/Images/4ship.png");
 		InputStream stream5 = new FileInputStream("src/Images/5ship.png");
 
-		Image twoShip = new Image(stream1);
-		Image threeShip = new Image(stream2);
-		Image threeShip2 = new Image(stream3);
-		Image fourShip = new Image(stream4);
-		Image fiveShip = new Image(stream5);
+		Image twoShipImage = new Image(stream1);
+		Image threeShipImage = new Image(stream2);
+		Image threeShip2Image = new Image(stream3);
+		Image fourShipImage = new Image(stream4);
+		Image fiveShipImage = new Image(stream5);
 
 		ImageView imageViewTwoShip = new ImageView();
 		ImageView imageViewThreeShip = new ImageView();
@@ -235,50 +294,30 @@ public class GuiClient extends Application{
 		ImageView imageViewFiveShip = new ImageView();
 
 		//sets the width and height of the image
-		imageViewTwoShip.setImage(twoShip);
+		imageViewTwoShip.setImage(twoShipImage);
 		imageViewTwoShip.setFitWidth(250);
 		imageViewTwoShip.setFitHeight(125);
 		imageViewTwoShip.setPreserveRatio(false);
 
-		imageViewThreeShip.setImage(threeShip);
+		imageViewThreeShip.setImage(threeShipImage);
 		imageViewThreeShip.setFitWidth(250);
 		imageViewThreeShip.setFitHeight(125);
 		imageViewThreeShip.setPreserveRatio(false);
 
-		imageViewThreeShip2.setImage(threeShip2);
+		imageViewThreeShip2.setImage(threeShip2Image);
 		imageViewThreeShip2.setFitWidth(250);
 		imageViewThreeShip2.setFitHeight(125);
 		imageViewThreeShip2.setPreserveRatio(false);
 
-		imageViewFourShip.setImage(fourShip);
+		imageViewFourShip.setImage(fourShipImage);
 		imageViewFourShip.setFitWidth(250);
 		imageViewFourShip.setFitHeight(125);
 		imageViewFourShip.setPreserveRatio(false);
 
-		imageViewFiveShip.setImage(fiveShip);
+		imageViewFiveShip.setImage(fiveShipImage);
 		imageViewFiveShip.setFitWidth(250);
 		imageViewFiveShip.setFitHeight(125);
 		imageViewFiveShip.setPreserveRatio(false);
-
-		imageViewTwoShip.setOnMouseClicked(e -> {
-
-		});
-
-		imageViewThreeShip.setOnMouseClicked(e -> {
-
-		});
-
-		imageViewThreeShip2.setOnMouseClicked(e -> {
-
-		});
-
-		imageViewFourShip.setOnMouseClicked(e -> {
-
-		});
-
-		imageViewFiveShip.setOnMouseClicked(e -> {
-
-		});
 
 		availableShips.add(5);
 		availableShips.add(4);
@@ -286,19 +325,65 @@ public class GuiClient extends Application{
 		availableShips.add(3);
 		availableShips.add(2);
 
+		Text shipOrientation = new Text("SELECT SHIP ORIENTATION");
+		shipOrientation.setFont(Font.font("Courier New", FontWeight.BOLD, 20));
+		shipOrientation.setTranslateX(-30);
+		shipOrientation.setUnderline(true);
+
+
+		horizontal.setDisable(true);
+		horizontal.setStyle("-fx-background-radius: 40;");
+		horizontal.setPrefWidth(220);
+		horizontal.setPrefHeight(60);
+
+
+		vertical.setDisable(true);
+		vertical.setStyle("-fx-background-radius: 40;");
+		vertical.setPrefWidth(220);
+		vertical.setPrefHeight(60);
+
 		Text selectShip = new Text("SELECT SHIP TO PLACE");
-		VBox allShips = new VBox(10, selectShip,imageViewTwoShip, imageViewThreeShip, imageViewThreeShip2, imageViewFourShip, imageViewFiveShip);
-		allShips.setTranslateX(80);
+		selectShip.setFont(Font.font("Courier New", FontWeight.BOLD, 20));
+		selectShip.setTranslateX(80);
+		selectShip.setUnderline(true);
+
+		twoShipButton.setTranslateX(25);
+		twoShipButton.setTranslateY(67);
+
+		threeShipButton.setTranslateX(25);
+		threeShipButton.setTranslateY(55);
+
+		threeShip2Button.setTranslateX(25);
+		threeShip2Button.setTranslateY(65);
+
+		fourShipButton.setTranslateX(25);
+		fourShipButton.setTranslateY(65);
+
+		fiveShipButton.setTranslateX(25);
+		fiveShipButton.setTranslateY(65);
+
+		HBox twoShipBox = new HBox(35,twoShipButton,imageViewTwoShip);
+		HBox threeShipBox = new HBox(35,threeShipButton, imageViewThreeShip);
+		HBox threeShip2Box = new HBox(35,threeShip2Button, imageViewThreeShip2);
+		HBox fourShipBox = new HBox(35,fourShipButton, imageViewFourShip);
+		HBox fiveShipBox = new HBox(35,fiveShipButton, imageViewFiveShip);
+
+		VBox allShips = new VBox(10, selectShip,twoShipBox, threeShipBox, threeShip2Box, fourShipBox, fiveShipBox);
+		allShips.setTranslateX(20);
+
+		allShips.setTranslateY(30);
 		done = new Button("DONE");
-		placeShip = new Button("PLACE SHIP");
+//		placeShip = new Button("PLACE SHIP");
 
 		done.setStyle("-fx-background-radius: 40;");
 		done.setPrefWidth(220);
 		done.setPrefHeight(60);
 
-		placeShip.setStyle("-fx-background-radius: 40;");
-		placeShip.setPrefWidth(220);
-		placeShip.setPrefHeight(60);
+//		placeShip.setStyle("-fx-background-radius: 40;");
+//		placeShip.setPrefWidth(220);
+//		placeShip.setPrefHeight(60);
+//		placeShip.setDisable(true);
+		done.setDisable(true);
 
 		// Create a GridPane layout
 		GridPane gridPane = new GridPane();
@@ -309,50 +394,238 @@ public class GuiClient extends Application{
 		gridPane.setHgap(5);
 		gridPane.setVgap(5);
 
-		VBox buttonsBox = new VBox(20, done,placeShip);
-		buttonsBox.setTranslateY(320);
-		buttonsBox.setTranslateX(250);
+		popUpMessage.setFont(Font.font("Courier New", FontWeight.BOLD, 20));
+		popUpMessage.setFill(Color.RED);
 
-		HBox all = new HBox(10, allShips, gridPane, buttonsBox);
+		VBox buttonsBox = new VBox(20, shipOrientation, horizontal, vertical, done, popUpMessage);
+		buttonsBox.setTranslateY(30);
+		buttonsBox.setTranslateX(240);
 
-		// Define the number of rows and columns (e.g., 10x10 for a standard Battleship board)
-		int rows = 10;
-		String[] letters = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"};
-		int cols = 10;
+		setShipButtons = new ArrayList<>();
 
-		// Create a 10x10 grid of buttons
-		for (int row = 0; row < letters.length; row++) {
-			for (int col = 0; col < cols; col++) {
-				// Create a new button
-				Button button = new Button();
+		HBox rightSide = new HBox(-10, gridPane, buttonsBox);
+		rightSide.setTranslateX(-125);
 
-				// Set button text or other properties as needed
-				button.setText(letters[row] + (col + 1)); // Set initial button text (e.g., "")
+		HBox all = new HBox(5, allShips, rightSide);
+		populateGrid(setShipButtons, gridPane, 60);
 
-				// Set button size (optional, adjust as needed)
-				button.setMinSize(60, 60);
+		setDisableGridPane("disable");
+		twoShipButton.setOnMouseClicked(e -> {
+//			AtomicInteger keepCount = new AtomicInteger();
+			horizontal.setDisable(false);
+			vertical.setDisable(false);
 
-				// Add the button to the grid
-				gridPane.add(button, col, row);
+			//disable other ships so user cannot undo their choice
+			threeShipButton.setDisable(true);
+			threeShip2Button.setDisable(true);
+			fourShipButton.setDisable(true);
+			fiveShipButton.setDisable(true);
+			setDisableGridPane("disable");
 
-				// Set an action for button click
-				final int r = row;
-				final int c = col;
-				button.setOnAction(event -> {
-					// Add the clicked button to the list
-//					clickedButtons.add(new int[] { r, c });
-//					checkValidShipPlacement(button, gridPane);
+			horizontal.setOnMouseClicked(t -> {
+				disableShipCoords();
+
+				game.currentPlayer.twoShip.isHorizontal = true;
+				setDisableGridPane("enable");
+				horizontal.setDisable(true);
+				vertical.setDisable(true);
+
+				//if(keepCount.equals(0)) {
+				searchGridButtons(game.currentPlayer.twoShip, game.currentPlayer);
+
+				//keepCount.addAndGet(1);
+				//}
+//				Button checkButton = searchGridButtons().get(); //set regular button equal to atomic button
+//				String checkCoord = checkButton.getText();
+//				System.out.println("checkng string" + checkCoord+"\n");
+//				game.checkFirstClick(checkCoord, game.currentPlayer.twoShip);
+//				tempDisableButtons(game.currentPlayer.twoShip, game.currentPlayer, checkCoord);
+			});
+
+			vertical.setOnMouseClicked(d -> {
+				disableShipCoords();
+
+				game.currentPlayer.twoShip.isVertical = true;
+				setDisableGridPane("enable");
+				horizontal.setDisable(true);
+				vertical.setDisable(true);
+
+				searchGridButtons(game.currentPlayer.twoShip, game.currentPlayer);
+//				Button checkButton = searchGridButtons().get(); //set regular button equal to atomic button
+//				String checkCoord = checkButton.getText();
+//				game.checkFirstClick(checkCoord, game.currentPlayer.twoShip);
+//				tempDisableButtons(game.currentPlayer.twoShip, game.currentPlayer, checkCoord);
+			});
+
+		});
+
+		threeShipButton.setOnMouseClicked(e -> {
+			horizontal.setDisable(false);
+			vertical.setDisable(false);
+
+			threeShip2Button.setDisable(true);
+			twoShipButton.setDisable(true);
+			fourShipButton.setDisable(true);
+			fiveShipButton.setDisable(true);
+			setDisableGridPane("disable");
+
+			horizontal.setOnMouseClicked(t -> {
+				//System.out.prdintln("inside three ship button horizontal click\n\n");
+				disableShipCoords();
+
+				game.currentPlayer.threeShip.isHorizontal = true;
+				setDisableGridPane("enable");
+				horizontal.setDisable(true);
+				vertical.setDisable(true);
+
+				searchGridButtons(game.currentPlayer.threeShip, game.currentPlayer);
+//				Button checkButton = searchGridButtons().get(); //set regular button equal to atomic button
+//				String checkCoord = checkButton.getText();
+//				game.checkFirstClick(checkCoord, game.currentPlayer.threeShip);
+//				tempDisableButtons(game.currentPlayer.threeShip, game.currentPlayer, checkCoord);
+			});
+
+			vertical.setOnMouseClicked(d -> {
+				disableShipCoords();
+
+				game.currentPlayer.threeShip.isVertical = true;
+				setDisableGridPane("enable");
+				horizontal.setDisable(true);
+				vertical.setDisable(true);
+
+				searchGridButtons(game.currentPlayer.threeShip, game.currentPlayer);
+//				Button checkButton = searchGridButtons().get(); //set regular button equal to atomic button
+//				String checkCoord = checkButton.getText();
+//				game.checkFirstClick(checkCoord, game.currentPlayer.threeShip);
+//				tempDisableButtons(game.currentPlayer.threeShip, game.currentPlayer, checkCoord);
+			});
+		});
+
+		threeShip2Button.setOnMouseClicked(e -> {
+			horizontal.setDisable(false);
+			vertical.setDisable(false);
+
+			twoShipButton.setDisable(true);
+			threeShipButton.setDisable(true);
+			fourShipButton.setDisable(true);
+			fiveShipButton.setDisable(true);
+			setDisableGridPane("disable");
+
+			horizontal.setOnMouseClicked(t -> {
+				disableShipCoords();
+
+				game.currentPlayer.threeShip2.isHorizontal = true;
+				setDisableGridPane("enable");
+				horizontal.setDisable(true);
+				vertical.setDisable(true);
+				searchGridButtons(game.currentPlayer.threeShip2, game.currentPlayer);
+
+//				Button checkButton = searchGridButtons().get(); //set regular button equal to atomic button
+//				String checkCoord = checkButton.getText();
+//				game.checkFirstClick(checkCoord, game.currentPlayer.threeShip2);
+//				tempDisableButtons(game.currentPlayer.threeShip2, game.currentPlayer, checkCoord);
+			});
+
+			vertical.setOnMouseClicked(d -> {
+				disableShipCoords();
+
+				game.currentPlayer.threeShip2.isVertical = true;
+				setDisableGridPane("enable");
+				horizontal.setDisable(true);
+				vertical.setDisable(true);
+
+				searchGridButtons(game.currentPlayer.threeShip2, game.currentPlayer);
+
+//				Button checkButton = searchGridButtons().get(); //set regular button equal to atomic button
+//				String checkCoord = checkButton.getText();
+//				game.checkFirstClick(checkCoord, game.currentPlayer.threeShip2);
+//				tempDisableButtons(game.currentPlayer.threeShip2, game.currentPlayer, checkCoord);
+			});
+
+		});
+
+		fourShipButton.setOnMouseClicked(e -> {
+			horizontal.setDisable(false);
+			vertical.setDisable(false);
+
+			twoShipButton.setDisable(true);
+			threeShipButton.setDisable(true);
+			threeShip2Button.setDisable(true);
+			fiveShipButton.setDisable(true);
+			setDisableGridPane("disable");
+
+			horizontal.setOnMouseClicked(t -> {
+				disableShipCoords();
+
+				game.currentPlayer.fourShip.isHorizontal = true;
+				setDisableGridPane("enable");
+				horizontal.setDisable(true);
+				vertical.setDisable(true);
+				searchGridButtons(game.currentPlayer.fourShip, game.currentPlayer);
+
+//				Button checkButton = searchGridButtons().get(); //set regular button equal to atomic button
+//				String checkCoord = checkButton.getText();
+//				game.checkFirstClick(checkCoord, game.currentPlayer.fourShip);
+//				tempDisableButtons(game.currentPlayer.fourShip, game.currentPlayer, checkCoord);
+			});
+
+			vertical.setOnMouseClicked(d -> {
+				disableShipCoords();
 
 
-					// Handle button click event
-					//button.setText("Ship Part"); // Mark the button as part of a ship
+				game.currentPlayer.fourShip.isVertical = true;
+				setDisableGridPane("enable");
+				horizontal.setDisable(true);
+				vertical.setDisable(true);
+				searchGridButtons(game.currentPlayer.fourShip, game.currentPlayer);
+
+				//				Button checkButton = searchGridButtons().get(); //set regular button equal to atomic button
+//				String checkCoord = checkButton.getText();
+//				game.checkFirstClick(checkCoord, game.currentPlayer.fourShip);
+//				tempDisableButtons(game.currentPlayer.fourShip, game.currentPlayer, checkCoord);
+			});
+
+		});
+
+		fiveShipButton.setOnMouseClicked(e -> {
+			horizontal.setDisable(false);
+			vertical.setDisable(false);
+
+			twoShipButton.setDisable(true);
+			threeShipButton.setDisable(true);
+			threeShip2Button.setDisable(true);
+			fourShipButton.setDisable(true);
+			setDisableGridPane("disable");
+
+			horizontal.setOnMouseClicked(t -> {
+				disableShipCoords();
 
 
-					// Check if the clicked buttons form a valid ship placement
+				game.currentPlayer.fiveShip.isHorizontal = true;
+				setDisableGridPane("enable");
+				horizontal.setDisable(true);
+				vertical.setDisable(true);
+				searchGridButtons(game.currentPlayer.fiveShip, game.currentPlayer);
+//				Button checkButton = searchGridButtons().get(); //set regular button equal to atomic button
+//				String checkCoord = checkButton.getText();
+//				game.checkFirstClick(checkCoord, game.currentPlayer.fiveShip);
+//				tempDisableButtons(game.currentPlayer.fiveShip, game.currentPlayer, checkCoord);
+			});
 
-				});
-			}
-		}
+			vertical.setOnMouseClicked(d -> {
+				disableShipCoords();
+
+				game.currentPlayer.fiveShip.isVertical = true;
+				setDisableGridPane("enable");
+				horizontal.setDisable(true);
+				vertical.setDisable(true);
+				searchGridButtons(game.currentPlayer.fiveShip, game.currentPlayer);
+//				Button checkButton = searchGridButtons().get(); //set regular button equal to atomic button
+//				String checkCoord = checkButton.getText();
+//				game.checkFirstClick(checkCoord, game.currentPlayer.fiveShip);
+//				tempDisableButtons(game.currentPlayer.fiveShip, game.currentPlayer, checkCoord);
+			});
+		});
 
 
 		// Create a scene with the gridPane
@@ -364,6 +637,9 @@ public class GuiClient extends Application{
 			@Override
 			public void handle(ActionEvent actionEvent) {
                 try {
+					if(game.versusComputer){
+						game.createBoardForComputer();
+					}
                     gameScreen(primaryStage);
                 } catch (Exception e) {
 					e.printStackTrace();
@@ -373,11 +649,199 @@ public class GuiClient extends Application{
             }
 		});
 
-		Scene gameSetUpScreen = new Scene(pane, 1500, 800);
+		Scene setUpScreen = new Scene(pane, 1500, 800);
 		primaryStage.setMaximized(true);
-		primaryStage.setScene(gameSetUpScreen);
+		primaryStage.setScene(setUpScreen);
 		primaryStage.setResizable(false);
 		primaryStage.show();
+	}
+
+//	public void tempDisableButtons(Ship ship, Player player, String coord){
+//		String col = coord.substring(1); //number in the coordinate
+//		char row =  coord.charAt(0);
+//		String rowStr = coord.substring(0,1);
+//		player.allCoordinates.add(coord);
+//
+//
+//		if (ship.isVertical) {
+//			//if they can place both above and below, disable everything not in that column
+//			if(player.above && player.below){
+//
+//				for (Button tempButton: gridButtons){
+//					//if it is not in that row, then disable the button
+//					if(tempButton.getText().equals(coord)){
+//						tempButton.setDisable(true);
+//					}
+//					if(!tempButton.getText().contains(col)){
+//						tempButton.setDisable(true);
+//					}
+//				}
+//			}
+//
+//			//if they can place their coord above but not below
+//			else if(player.above){
+//				for (Button tempButton: gridButtons){
+//					if(tempButton.getText().equals(coord)){
+//						tempButton.setDisable(true);
+//					}
+//					//if it is not in that row, then disable the button (checks if the button does not contain the row and if the letter is greater, disable the button)
+//					if(!tempButton.getText().contains(col) || (tempButton.getText().charAt(0) > row )){
+//						tempButton.setDisable(true);
+//					}
+//				}
+//			}
+//			//if they can place only below and not above
+//			else {
+//				for (Button tempButton: gridButtons){
+//					if(tempButton.getText().equals(coord)){
+//						tempButton.setDisable(true);
+//					}
+//					//if it is not in that row, then disable the button (checks if the button does not contain the row, and if the letter is greater)
+//					if(!tempButton.getText().contains(col) || (tempButton.getText().charAt(0) < row )){
+//						tempButton.setDisable(true);
+//					}
+//				}
+//			}
+//		}
+//		//check if horizontal
+//		else{
+//			//if they can place left and right disable everything not in the row
+//			if(player.right && player.left){
+//				for (Button tempButton: gridButtons){
+//					if(tempButton.getText().equals(coord)){
+//						tempButton.setDisable(true);
+//					}
+//					//if it is not in that row, then disable the button
+//					if (!tempButton.getText().contains(rowStr)) {
+//						tempButton.setDisable(true);
+//					}
+//				}
+//			}
+//			// if they can place in the coord to the right but not left
+//			else if(player.right){
+//				for (Button tempButton: gridButtons){
+//					if(tempButton.getText().equals(coord)){
+//						tempButton.setDisable(true);
+//					}
+//					//if it is not in that row, then disable the button
+//					if (!tempButton.getText().contains(rowStr) || (Integer.parseInt(tempButton.getText().substring(1)) < Integer.parseInt(col))) {
+//						tempButton.setDisable(true);
+//					}
+//				}
+//			}
+//			//if they can place the coord to the left but not right
+//			else {
+//				for (Button tempButton: gridButtons){
+//					if(tempButton.getText().equals(coord)){
+//						tempButton.setDisable(true);
+//					}
+//					//if it is not in that row, then disable the button
+//					if (!tempButton.getText().contains(rowStr) || (Integer.parseInt(tempButton.getText().substring(1)) > Integer.parseInt(col))) {
+//						tempButton.setDisable(true);
+//					}
+//				}
+//			}
+//
+//		}
+//	}
+
+	public void searchGridButtons(Ship ship, Player player){
+		//AtomicReference<Integer> keepCount = new AtomicReference<>(0);
+		for (Button tempButton : setShipButtons) {
+			//System.out.println("inside for loop\n");
+			tempButton.setOnAction(d -> {
+				game.checkFirstClick(tempButton.getText(), ship, false);
+				System.out.print("This is the tempButton.getText() inside searchGridButtons " + tempButton.getText() + "\n");
+
+				if (game.isShipFilled && shipPlacedCount != 5) {
+					ship.getCoordinates().add(tempButton.getText());
+					game.currentPlayer.allCoordinates.add(tempButton.getText());
+
+					popUpMessage.setText("Ship Placed!\nSelect A New Ship!");
+					popUpMessage.setTextAlignment(TextAlignment.CENTER);
+					shipPlacedCount++;
+					disableShipCoords();
+					setDisableGridPane("disable");
+
+					// 5 checks for each ship to check whether they have been placed or not
+					if (!game.currentPlayer.twoShip.getCoordinates().isEmpty()){
+						twoShipButton.setDisable(true);
+					}
+					else{
+						twoShipButton.setDisable(false);
+					}
+
+					if (!game.currentPlayer.threeShip.getCoordinates().isEmpty()){
+						threeShipButton.setDisable(true);
+					}
+					else {
+						threeShipButton.setDisable(false);
+					}
+
+					if (!game.currentPlayer.threeShip2.getCoordinates().isEmpty()){
+						threeShip2Button.setDisable(true);
+					}
+					else {
+						threeShip2Button.setDisable(false);
+					}
+
+					if (!game.currentPlayer.fourShip.getCoordinates().isEmpty()){
+						fourShipButton.setDisable(true);
+					}
+					else {
+						fourShipButton.setDisable(false);
+					}
+
+					if (!game.currentPlayer.fiveShip.getCoordinates().isEmpty()){
+						fiveShipButton.setDisable(true);
+					}
+					else {
+						fiveShipButton.setDisable(false);
+					}
+				}
+
+				if (game.isShipFilled && shipPlacedCount == 5) {
+					//call method to disable buttons
+					popUpMessage.setText("All Ships Placed!\n Press Done");
+					popUpMessage.setTextAlignment(TextAlignment.CENTER);
+					disableShipCoords();
+					done.setDisable(false);
+				}
+
+				if (!game.isShipFilled) {
+					System.out.println("inside try again pick new coordinate\n");
+					popUpMessage.setText("Try Again! Pick New Coordinate");
+					setDisableGridPane("disable");
+					vertical.setDisable(false);
+					horizontal.setDisable(false);
+				}
+			});
+
+		}
+	}
+
+	public void disableShipCoords(){
+		System.out.println("inside disable ship coords");
+		// disable the ship coordinates, so it cannot be reselected
+
+//		game.currentPlayer.allCoordinates.add("F4");
+
+		System.out.println("AllCoordinates inside disableShipCoords is: " + game.currentPlayer.allCoordinates);
+
+		for (Button button : setShipButtons) {
+			for (int i = 0; i < game.currentPlayer.allCoordinates.size(); i++) {
+				//System.out.println("ship coordinates: " + ship.getCoordinates().get(i)+"\n");
+
+//				System.out.println("this is the button.getText(): " + button.getText());
+
+				if (button.getText().equals(game.currentPlayer.allCoordinates.get(i))) {
+					button.setStyle("-fx-background-color: green; -fx-text-fill:black;");
+					System.out.println("inside found ship coord");
+					System.out.println("here is the button we are disabling: " + button.getText());
+					button.setDisable(true);
+				}
+			}
+		}
 	}
 
 	// waiting for player to connect screen
@@ -396,17 +860,172 @@ public class GuiClient extends Application{
 
 	// game screen
 	public void gameScreen (Stage primaryStage) throws Exception {
-		Button attack, chooseSquare;
-		attack = new Button("Attack");
-		chooseSquare = new Button("Choose Square To Attack");
+		Text headerAI = new Text ("AI MAP");
+		headerAI.setFont(Font.font("Courier New", FontWeight.BOLD, 20));
+		//headerAI.setTranslateX(-30);
+		headerAI.setUnderline(true);
+
+		Text headerYourMap = new Text ("YOUR MAP");
+		headerYourMap.setFont(Font.font("Courier New", FontWeight.BOLD, 20));
+		//headerYourMap.setTranslateX(-30);
+		headerYourMap.setUnderline(true);
+
+		Text popUpMessage = new Text ("");
+		popUpMessage.setFill(Color.RED);
+		popUpMessage.setFont(Font.font("Courier New", FontWeight.BOLD, 20));
+
+		Text message = new Text("Choose coordinate\nto attack");
+		Text redMessage = new Text("= Miss");
+		Text greenMessage = new Text("= Hit");
+
+		Button redButton = new Button();
+		redButton.setDisable(true);
+		redButton.setStyle("-fx-background-color: red; -fx-text-fill:black;");
+		//redButton.setStyle("-fx-background-radius: 40;");
+		redButton.setPrefWidth(40);
+		redButton.setPrefHeight(40);
+
+		Button greenButton = new Button();
+		greenButton.setDisable(true);
+		greenButton.setStyle("-fx-background-color: green; -fx-text-fill:black;");
+		//greenButton.setStyle("-fx-background-radius: 40;");
+		greenButton.setPrefWidth(40);
+		greenButton.setPrefHeight(40);
+
+//		GridPane computerCoordsGrid = new GridPane();
+
+//		computerCoordsGrid.setTranslateY(-30);
+//		computerCoordsGrid.setTranslateX(180);
+		computerCoordsGrid.setAlignment(Pos.CENTER);
+		computerCoordsGrid.setHgap(5);
+		computerCoordsGrid.setVgap(5);
+
+		playerCoordsGrid.setAlignment(Pos.CENTER);
+		playerCoordsGrid.setHgap(5);
+		playerCoordsGrid.setVgap(5);
+
+		populateGrid(computerCoords, computerCoordsGrid, 45);
+		populateGrid(playerCoords, playerCoordsGrid,45);
+
+		Button attackComputer = new Button("Attack AI");
+		attackComputer.setStyle("-fx-background-radius: 40;");
+		attackComputer.setFont(Font.font("Courier New", FontWeight.BOLD, 30));
+		attackComputer.setPrefWidth(220);
+		attackComputer.setPrefHeight(60);
+		attackComputer.setDisable(true);
+
+		redMessage.setFont(Font.font("Courier New", FontWeight.NORMAL, 24));
+		greenMessage.setFont(Font.font("Courier New", FontWeight.NORMAL, 24));
+		HBox redKey = new HBox(8,redButton, redMessage );
+		HBox greenKey = new HBox(8,greenButton, greenMessage);
+		redKey.setAlignment(Pos.CENTER);
+		greenKey.setAlignment(Pos.CENTER);
+		VBox key = new VBox(15, redKey, greenKey);
+		greenKey.setTranslateX(-6);
+		message.setFont(Font.font("Courier New", FontWeight.BOLD, 24));
+		message.setTextAlignment(TextAlignment.CENTER);
+
+		VBox keyAndMessage = new VBox(20, message,key, popUpMessage);
+		VBox computerGridVbox = new VBox(20, headerAI, computerCoordsGrid, attackComputer);
+		VBox playerGridVbox = new VBox(20, headerYourMap, playerCoordsGrid);
+
+		computerGridVbox.setAlignment(Pos.CENTER);
+		playerGridVbox.setAlignment(Pos.CENTER);
+
+		keyAndMessage.setTranslateY(130);
+		keyAndMessage.setTranslateX(-10);
+
+		HBox all = new HBox(15, computerGridVbox, keyAndMessage, playerGridVbox);
+
+
+		computerGridVbox.setTranslateX(-30);
+		playerGridVbox.setTranslateX(20);
+		playerGridVbox.setTranslateY(-40);
+
+		all.setTranslateX(90);
+		all.setTranslateY(-10);
+
+		BorderPane pane = new BorderPane();
+		pane.setCenter(all);
+
+		pane.setStyle("-fx-background-color: rgb(98,170,237);");
+
+		for (Button button : computerCoords) {
+			button.setOnAction(e->{
+				playerHits.add(button.getText());
+				attackComputer.setDisable(false);
+
+				button.setStyle("-fx-background-color: blue; -fx-text-fill:black;");
+				blackOutGrid("disable", playerHits, computerCoords);
+
+				attackComputer.setOnAction(d->{
+					String coordinateChosen = button.getText();
+					//if it returns true, let them play again and change coordinate to green
+					if (game.checkAttack(coordinateChosen, false)) {
+						button.setStyle("-fx-background-color: green; -fx-text-fill:black;");
+						button.setDisable(true);
+						popUpMessage.setText("You hit a ship!\nChoose a new coordinate");
+						blackOutGrid("enable", playerHits, computerCoords);
+
+					}
+					//missed ship
+					else {
+						button.setStyle("-fx-background-color: red; -fx-text-fill:black;");
+						popUpMessage.setText("You missed!\n Computer's turn");
+						//disable grid
+						blackOutGrid("disable", playerHits, computerCoords);
+						//calculate do computer's turn
+
+						// based off this boolean do the same checks as above
+						game.checkAttack(game.computerPlayer.computerHit(), true);
+					}
+				});
+			});
+		}
+
+		//return new Scene(pane);
+		Scene gameScene = new Scene(pane, 1400, 800);
+		primaryStage.setScene(gameScene);
+		primaryStage.setMaximized(true);
+		primaryStage.setResizable(false);
+		primaryStage.show();
+	}
+
+	public void blackOutGrid(String enable, ArrayList<String> hits, ArrayList<Button> buttons){
+//		if (enable.equals("enable")) {
+//			for (int i = 0; i < setShipButtons.size(); i++) {
+//				if (!game.currentPlayer.allCoordinates.contains(setShipButtons.get(i).getText())) {
+//					setShipButtons.get(i).setDisable(false);
+//				}
+//			}
+//		}
+
+		// when it is player's turn, enable the computer grid
+		if(enable.equals("enable")){
+			for(Button button : buttons){
+				//if it is a button that was already hit, do not re-enable
+				if(!hits.contains(button.getText())){
+					button.setDisable(true);
+				}
+				else{
+					button.setDisable(false);
+				}
+			}
+		}
+		else{
+			// disabling all the buttons
+			for(Button button : buttons){
+				button.setDisable(true);
+			}
+		}
+	}
+
+	public void populateGrid(ArrayList<Button> populateCoordGridArray, GridPane currentPane, int buttonSize) {
 		int rows = 10;
 
 		String[] letters = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"};
 		int cols = 10;
-		GridPane gridPane = new GridPane();
-		gridPane.setAlignment(Pos.CENTER);
 
-		// Create a 10x10 grid of buttons
 		for (int row = 0; row < letters.length; row++) {
 			for (int col = 0; col < cols; col++) {
 				// Create a new button
@@ -415,12 +1034,12 @@ public class GuiClient extends Application{
 				// Set button text or other properties as needed
 				button.setText(letters[row] + (col + 1)); // Set initial button text (e.g., "")
 
-				// Set button size (optional, adjust as needed)
-				button.setMinSize(40, 40);
+				// Set button size (optional, a; just as needed)
+				button.setMinSize(buttonSize, buttonSize);// Add the button to the grid
 
-				// Add the button to the grid
-				gridPane.add(button, col, row);
+				currentPane.add(button, col, row);
 
+				populateCoordGridArray.add(button);
 				// Set an action for button click
 				final int r = row;
 				final int c = col;
@@ -439,36 +1058,7 @@ public class GuiClient extends Application{
 				});
 			}
 		}
-
-		VBox gridVbox = new VBox(10, gridPane, chooseSquare);
-		HBox all = new HBox(10, gridVbox, attack);
-
-		BorderPane pane = new BorderPane();
-		pane.setCenter(all);
-
-		pane.setStyle("-fx-background-color: rgb(98,170,237);");
-
-
-		// NOT CORRECT IMPLEMENTATION JUST SEETING WHAT IT LOOKS LIKE
-		attack.setOnAction(new EventHandler<ActionEvent>() {
-			@Override
-			public void handle(ActionEvent actionEvent) {
-				try{
-					primaryStage.setMaximized(true);
-					userLostScreen(primaryStage);
-				} catch(Exception e){
-					e.printStackTrace();
-				}
-			}
-		});
-		//return new Scene(pane);
-		Scene gameScene = new Scene(pane, 1500, 800);
-		primaryStage.setScene(gameScene);
-//		primaryStage.setMaximized(true);
-//		primaryStage.setResizable(false);
-		primaryStage.show();
 	}
-
 
 	// you lost screen
 	public void userLostScreen (Stage primaryStage) {
@@ -495,7 +1085,7 @@ public class GuiClient extends Application{
 			@Override
 			public void handle(ActionEvent actionEvent) {
 				try{
-					primaryStage.setMaximized(true);
+					//primaryStage.setMaximized(true);
 					welcomeScreen(primaryStage);
 				}catch(Exception e){
 					e.printStackTrace();
@@ -508,7 +1098,7 @@ public class GuiClient extends Application{
 			@Override
 			public void handle(ActionEvent actionEvent) {
 				try{
-					primaryStage.setMaximized(true);
+					//primaryStage.setMaximized(true);
 					userWonScreen(primaryStage);
 				}catch(Exception e){
 					e.printStackTrace();
@@ -538,148 +1128,26 @@ public class GuiClient extends Application{
 		primaryStage.setMaximized(true);
 		primaryStage.show();
 
-
-		//return new Scene(pane);
 	}
 
-
-//	public void sample(Stage primaryStage) {
-//		availableShips.add(5);
-//		availableShips.add(4);
-//		availableShips.add(3);
-//		availableShips.add(3);
-//		availableShips.add(2);
-//		// Create a GridPane layout
-//		GridPane gridPane = new GridPane();
-//
-//		// Define the number of rows and columns (e.g., 10x10 for a standard Battleship board)
-//		int rows = 10;
-//		int cols = 10;
-//
-//		// Create a 10x10 grid of buttons
-//		for (int row = 0; row < rows; row++) {
-//			for (int col = 0; col < cols; col++) {
-//				// Create a new button
-//				Button button = new Button();
-//
-//				// Set button text or other properties as needed
-//				button.setText(""); // Set initial button text (e.g., "")
-//
-//				// Set button size (optional, adjust as needed)
-//				button.setMinSize(40, 40);
-//
-//				// Add the button to the grid
-//				gridPane.add(button, col, row);
-//
-//				// Set an action for button click
-//				final int r = row;
-//				final int c = col;
-//				button.setOnAction(event -> {
-//					// Handle button click event
-//					button.setText("Ship Part"); // Mark the button as part of a ship
-//
-//					// Add the clicked button to the list
-//					clickedButtons.add(new int[] { r, c });
-//
-//					// Check if the clicked buttons form a valid ship placement
-//					checkValidShipPlacement(button, gridPane);
-//				});
-//			}
-//		}
-//
-//		// Create a scene with the gridPane
-//		Scene scene = new Scene(gridPane, 400, 400);
-//
-//		// Set the scene on the stage
-//		primaryStage.setScene(scene);
-//
-//		// Set stage title and show the stage
-//		primaryStage.setTitle("Battleship Game");
-//		primaryStage.show();
-//	}
-
-	private void checkValidShipPlacement(Button button, GridPane gridPane) {
-		// Check if the list contains the current ship length
-		if (clickedButtons.size() == currentShipLength) {
-			// Check if the clicked buttons form a valid ship placement
-			boolean isValid = checkShipPlacement();
-
-			if (isValid) {
-				// Valid ship placement
-				System.out.println("Valid ship placement!");
-				// Remove the placed ship from the available ships
-				availableShips.remove(Integer.valueOf(currentShipLength));
-				// Reset the clicked buttons list
-				clickedButtons.clear();
-				// Reset button texts (you may want to adjust this for your game)
-				resetButtonTexts(gridPane);
-			} else {
-				// Invalid ship placement
-				System.out.println("Invalid ship placement. Please try again.");
-				// Reset the clicked buttons list
-				clickedButtons.clear();
-				// Reset button texts (you may want to adjust this for your game)
-				resetButtonTexts(gridPane);
-			}
-
-			// Check if there are more available ships
-			if (!availableShips.isEmpty()) {
-				// Set the current ship length to the next available ship length
-				currentShipLength = availableShips.get(0);
-			} else {
-				// No more ships available
-				System.out.println("All ships placed!");
+	//this enables or disables all the buttons in the grid pane
+	//parameters: String enable
+	//return: void
+	private void setDisableGridPane(String enable) {
+		//enable all the grid buttons
+		if (enable.equals("enable")) {
+			for (int i = 0; i < setShipButtons.size(); i++) {
+				if (!game.currentPlayer.allCoordinates.contains(setShipButtons.get(i).getText())) {
+					setShipButtons.get(i).setDisable(false);
+				}
 			}
 		}
-	}
-
-	private boolean checkShipPlacement() {
-		// Check if the clicked buttons form a straight line
-		// Sort the list for easier checking
-		clickedButtons.sort((a, b) -> {
-			if (a[0] != b[0]) {
-				return Integer.compare(a[0], b[0]);
-			}
-			return Integer.compare(a[1], b[1]);
-		});
-
-		// Check if the buttons form a valid horizontal ship placement
-		boolean isHorizontal = true;
-		for (int i = 1; i < currentShipLength; i++) {
-			if (clickedButtons.get(i)[0] != clickedButtons.get(i - 1)[0] ||
-					clickedButtons.get(i)[1] != clickedButtons.get(i - 1)[1] + 1) {
-				System.out.println("Ships are NOT horizontal!\n");
-				isHorizontal = false;
-				break;
+		//disable all the grid buttons
+		else {
+			for (int i = 0; i < setShipButtons.size(); i++) {
+				setShipButtons.get(i).setDisable(true);
 			}
 		}
-		if (isHorizontal) {
-			System.out.println("Ships ARE horizontal!\n");
-			return true;
-		}
-
-		// Check if the buttons form a valid vertical ship placement
-		boolean isVertical = true;
-		for (int i = 1; i < currentShipLength; i++) {
-			if (clickedButtons.get(i)[0] != clickedButtons.get(i - 1)[0] + 1 ||
-					clickedButtons.get(i)[1] != clickedButtons.get(i - 1)[1]) {
-				isVertical = false;
-				System.out.println("Ships are NOT vertical!\n");
-				break;
-			}
-		}
-
-		System.out.println("Ships ARE vertical!\n");
-		return isVertical;
-	}
-
-	private void resetButtonTexts(GridPane gridPane) {
-		// Reset the texts of the buttons in the gridPane
-		gridPane.getChildren().forEach(node -> {
-			if (node instanceof Button) {
-				((Button) node).setText("");
-			}
-		});
 	}
 }
 

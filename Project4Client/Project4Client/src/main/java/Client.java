@@ -5,8 +5,6 @@ import java.io.Serializable;
 import java.net.Socket;
 import java.util.function.Consumer;
 
-
-
 public class Client extends Thread{
 
 	
@@ -35,8 +33,8 @@ public class Client extends Thread{
 		while(true) {
 			 
 			try {
-			String message = in.readObject().toString();
-			callback.accept(message);
+				String message = in.readObject().toString();
+				callback.accept(message);
 			}
 			catch(Exception e) {}
 		}
