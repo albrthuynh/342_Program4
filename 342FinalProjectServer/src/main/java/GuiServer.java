@@ -1,4 +1,3 @@
-
 import java.util.HashMap;
 
 import javafx.application.Application;
@@ -22,7 +21,6 @@ public class GuiServer extends Application{
 	Server serverConnection;
 	
 	ListView<String> listItems, listItems2;
-	
 	
 	public static void main(String[] args) {
 		launch(args);
@@ -58,7 +56,6 @@ public class GuiServer extends Application{
 	}
 	
 	public Scene createServerGui() {
-		
 		BorderPane pane = new BorderPane();
 		pane.setPadding(new Insets(70));
 		pane.setStyle("-fx-background-color: coral");
@@ -66,7 +63,5 @@ public class GuiServer extends Application{
 		pane.setCenter(listItems);
 		pane.setStyle("-fx-font-family: 'serif'");
 		return new Scene(pane, 500, 400);
-		
-		
 	}
 }
