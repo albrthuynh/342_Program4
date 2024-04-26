@@ -23,12 +23,14 @@ import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicReference;
 import javafx.scene.image.ImageView;
 import javafx.stage.WindowEvent;
+import java.io.Serializable;
 
 
 import static javafx.scene.paint.Color.rgb;
 
 
-public class Ship {
+public class Ship implements Serializable {
+    static final long serialVersionUID = 42L;
     Boolean isHorizontal;
     Boolean isVertical;
     int shipLength;

@@ -1,7 +1,10 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.*;
 
-public class Computer {
+public class Computer implements Serializable {
+    static final long serialVersionUID = 42L;
+
     ArrayList<String> allCoordinates = new ArrayList<>();
     Ship twoShip = new Ship(2);
     Ship threeShip = new Ship(3);

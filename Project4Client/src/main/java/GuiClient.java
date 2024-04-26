@@ -41,15 +41,20 @@ public class GuiClient extends Application{
 	VBox clientBox;
 	Client clientConnection;
 	TextField createUser = new TextField();
-	
+
 	ListView<String> listItems2;
 	ArrayList<Button> setShipButtons;
 
 	ArrayList<Button> computerCoords = new ArrayList<>();
 	ArrayList<Button> playerCoords = new ArrayList<>();
+	Button attackOpponent = new Button("Attack Opponent");
+
+	ArrayList<Button> opponentCoords = new ArrayList<>();
 
 	GridPane computerCoordsGrid = new GridPane();
 	GridPane playerCoordsGrid = new GridPane();
+
+	GridPane opponentCoordsGrid = new GridPane();
 
 	BattleShipGame game = new BattleShipGame();
 	Text popUpMessage = new Text("");
@@ -61,6 +66,10 @@ public class GuiClient extends Application{
 	Button vertical = new Button("PLACE VERTICAL");
 	Button horizontal = new Button("PLACE HORIZONTAL");
 
+	Text popUpMessage2 = new Text ("");
+
+	BorderPane userGamePane;
+
 	public ArrayList<int[]> clickedButtons = new ArrayList<>(); // List to track clicked buttons
 	private int currentShipLength; // Length of the current ship being placed
 	public ArrayList<Integer> availableShips = new ArrayList<>(); // List of available ship lengths
@@ -68,7 +77,9 @@ public class GuiClient extends Application{
 
 	public ArrayList<String> playerHits = new ArrayList<>(); //keeping track of all the buttons the player clicked when attacking the computer
 	public ArrayList<String> computerHits = new ArrayList<>(); //keeping track of all the buttons the computer clicked when attacking the player
+	public ArrayList<String> opponentHits = new ArrayList<>();
 
+	String tempPlayerSendCoordinate = "";
 
 	public static void main(String[] args) {
 		launch(args);
@@ -77,22 +88,119 @@ public class GuiClient extends Application{
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		clientConnection = new Client(data->{
-				Platform.runLater(()->{listItems2.getItems().add(data.toString());
+				Platform.runLater(()->{
+					System.out.println("opponent hits before if else: " + opponentHits+"\n\n");
+
+					System.out.println("otherPlayerConnected BOOLEAN: "+clientConnection.clientGame.otherPlayerConnected );
+					System.out.println("firstConnect BOOLEAN: " + clientConnection.clientGame.firstConnect );
+					System.out.println("");
+					if (clientConnection.clientGame.otherPlayerConnected && clientConnection.clientGame.firstConnect) {
+						clientConnection.clientGame.otherPlayerConnected = true;
+						clientConnection.clientGame.firstConnect = false;
+						game.firstConnect = false;
+						game.otherPlayerConnected = true;
+						System.out.println("INSIDE OF IF STATEMENT FIRST CONNECT BOOLEAN: " + clientConnection.clientGame.firstConnect+"\n\n");
+						game.currentPlayer.currPlayerTurn = clientConnection.clientGame.currentPlayer.currPlayerTurn;
+						game.opponent = clientConnection.clientGame.opponent;
+						//game = clientConnection.clientGame;
+
+						// later!!!!!!!!!
+                        try {
+                            userGameScreen(primaryStage, clientConnection.clientGame.currentPlayer.clientNumber);
+							System.out.println("AFTER USER GAME SCREEN FIRST CONNECT: " + clientConnection.clientGame.firstConnect);
+                        }
+						catch (Exception e) {
+							e.printStackTrace();
+                            throw new RuntimeException(e);
+                        }
+
+                    }
+					else {
+
+						game.opponent = clientConnection.clientGame.opponent;
+						System.out.println("game's firstConnect boolean inside guiclient.java: " + game.firstConnect);
+						System.out.println("inside else in platform run later");
+						clientConnection.clientGame.firstConnect = false;
+						game.firstConnect = false;
+
+						System.out.println("platform run later else statement!?!?!?Nicki Minaj!?!??");
+						System.out.println("game.opponent.sentCoordinate: " + game.opponent.sentCoordinate);
+
+
+						System.out.println("GAME ALL COORDINATES BEFORE SETTING TO CLIENT CONNECTION: " + game.currentPlayer.allCoordinates+"\n\n");
+
+
+						game = clientConnection.clientGame;
+						opponentHits = game.opponent.sentCoordinate;
+//						System.out.println("opponent hits: " + opponentHits);
+
+						System.out.println("HERE IS PLAYERCOORDS: " + playerCoords);
+						System.out.println("GAME ALL COORDS AFTERWARDS: " + game.currentPlayer.allCoordinates+"\n\n");
+						System.out.println("CLIENT CONNECTION ALL COORDS AFTERWARDS: " + clientConnection.clientGame.currentPlayer.allCoordinates+"\n\n");
+
+						System.out.println("OPPONENT HITS: " + opponentHits+"\n\n");
+
+						for (int j = 0; j < opponentHits.size(); j++){
+//							System.out.println("inside opponents hit for loop");
+							for (int i = 0; i < playerCoords.size(); i++) {
+								if (playerCoords.get(i).getText().equals(opponentHits.get(j))) {
+									//System.out.println("FOUND BUTTON IF STATEMENT");
+									if (game.currentPlayer.allCoordinates.contains(opponentHits.get(j))) {
+										//System.out.println("HIT GREEN");
+										// change to green
+										playerCoords.get(i).setDisable(true);
+										playerCoords.get(i).setStyle("-fx-background-color: green; -fx-text-fill:black;");
+									}
+									//if it does not exist in the all coordinates array, that means it is a miss
+									else {
+										//System.out.println("MISS RED");
+										playerCoords.get(i).setDisable(true);
+										playerCoords.get(i).setStyle("-fx-background-color: red; -fx-text-fill:black;");
+									}
+								}
+							}
+						}
+
+
+						popUpMessage2.setText("Opponent Missed!\nYour Turn!");
+						popUpMessage2.setTextAlignment(TextAlignment.CENTER);
+						System.out.println("\nthis is opponentHits at the end of the else: " + opponentHits);
+						System.out.println("\nthis is playerHits at the end of the else: " + playerHits+"\n");
+
+						attackOpponent.setDisable(true);
+						if (game.currentPlayer.currPlayerTurn) {
+							blackOutGrid("enable", playerHits, opponentCoords);
+							blackOutGrid("disable", opponentHits, playerCoords);
+//							attackOpponent.setDisable(false);
+						}
+						else {
+							blackOutGrid("disable", playerHits, opponentCoords);
+							blackOutGrid("enable", opponentHits, playerCoords);
+//							attackOpponent.setDisable(true);
+						}
+
+						System.out.println("this is the currentPlayer.playerHealth: " + game.currentPlayer.playerHealth);
+						if (game.currentPlayer.playerHealth == 0) {
+							userLostScreen(primaryStage, userGamePane);
+						}
+					}
+
+
+
 			});
 		});
-							
+
 		clientConnection.start();
 
 		listItems2 = new ListView<String>();
-		
+
 		c1 = new TextField();
 		b1 = new Button("Send");
-		b1.setOnAction(e->{clientConnection.send(c1.getText()); c1.clear();});
-		
+//		b1.setOnAction(e->{clientConnection.send(c1.getText()); c1.clear();});
+
 		sceneMap = new HashMap<String, Scene>();
 
 //		sceneMap.put("client", welcomeScreen(primaryStage));
-		//gameScreen (primaryStage);
 		welcomeScreen(primaryStage);
 
 		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
@@ -107,7 +215,7 @@ public class GuiClient extends Application{
 //		primaryStage.setScene(sceneMap.get("client"));
 //		primaryStage.setTitle("Client");
 		primaryStage.show();
-		
+
 	}
 
 	public void welcomeScreen(Stage primaryStage) throws Exception {
@@ -180,7 +288,7 @@ public class GuiClient extends Application{
 		//when the joinButton is clicked
 		playWithUser.setOnAction(e->{
 			String tempUserId = createUser.getText(); //grab text from textfield
-            try {
+			try {
 				setUpScreen(primaryStage);
             } catch (Exception ex) {
 				ex.printStackTrace();
@@ -639,114 +747,45 @@ public class GuiClient extends Application{
 		done.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
-                try {
-					if(game.versusComputer){
-						game.createBoardForComputer();
+				System.out.println("DONE SET ON ACTION!!!! ALL COORDINATES: " + game.currentPlayer.allCoordinates+"\n\n");
+				if (game.versusComputer) {
+					try {
+						if(game.versusComputer){
+							game.createBoardForComputer();
+						}
+						computerGameScreen(primaryStage);
+					} catch (Exception e) {
+						e.printStackTrace();
+						throw new RuntimeException(e);
 					}
-                    gameScreen(primaryStage);
-                } catch (Exception e) {
-					e.printStackTrace();
-                    throw new RuntimeException(e);
-                }
 
+				}else{
+					clientConnection.clientGame = game;
+					clientConnection.send(game);
+					if(game.otherPlayerConnected){
+                        try {
+							// user game screen (make change)
+                            userGameScreen(primaryStage, clientConnection.clientGame.currentPlayer.clientNumber);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }else{
+                        try {
+                            waitingScreen(primaryStage);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+				}
             }
 		});
 
 		Scene setUpScreen = new Scene(pane, 1450, 800);
 		primaryStage.setMaximized(true);
 		primaryStage.setScene(setUpScreen);
-		primaryStage.setResizable(false);
+		primaryStage.setResizable(true);
 		primaryStage.show();
 	}
-
-//	public void tempDisableButtons(Ship ship, Player player, String coord){
-//		String col = coord.substring(1); //number in the coordinate
-//		char row =  coord.charAt(0);
-//		String rowStr = coord.substring(0,1);
-//		player.allCoordinates.add(coord);
-//
-//
-//		if (ship.isVertical) {
-//			//if they can place both above and below, disable everything not in that column
-//			if(player.above && player.below){
-//
-//				for (Button tempButton: gridButtons){
-//					//if it is not in that row, then disable the button
-//					if(tempButton.getText().equals(coord)){
-//						tempButton.setDisable(true);
-//					}
-//					if(!tempButton.getText().contains(col)){
-//						tempButton.setDisable(true);
-//					}
-//				}
-//			}
-//
-//			//if they can place their coord above but not below
-//			else if(player.above){
-//				for (Button tempButton: gridButtons){
-//					if(tempButton.getText().equals(coord)){
-//						tempButton.setDisable(true);
-//					}
-//					//if it is not in that row, then disable the button (checks if the button does not contain the row and if the letter is greater, disable the button)
-//					if(!tempButton.getText().contains(col) || (tempButton.getText().charAt(0) > row )){
-//						tempButton.setDisable(true);
-//					}
-//				}
-//			}
-//			//if they can place only below and not above
-//			else {
-//				for (Button tempButton: gridButtons){
-//					if(tempButton.getText().equals(coord)){
-//						tempButton.setDisable(true);
-//					}
-//					//if it is not in that row, then disable the button (checks if the button does not contain the row, and if the letter is greater)
-//					if(!tempButton.getText().contains(col) || (tempButton.getText().charAt(0) < row )){
-//						tempButton.setDisable(true);
-//					}
-//				}
-//			}
-//		}
-//		//check if horizontal
-//		else{
-//			//if they can place left and right disable everything not in the row
-//			if(player.right && player.left){
-//				for (Button tempButton: gridButtons){
-//					if(tempButton.getText().equals(coord)){
-//						tempButton.setDisable(true);
-//					}
-//					//if it is not in that row, then disable the button
-//					if (!tempButton.getText().contains(rowStr)) {
-//						tempButton.setDisable(true);
-//					}
-//				}
-//			}
-//			// if they can place in the coord to the right but not left
-//			else if(player.right){
-//				for (Button tempButton: gridButtons){
-//					if(tempButton.getText().equals(coord)){
-//						tempButton.setDisable(true);
-//					}
-//					//if it is not in that row, then disable the button
-//					if (!tempButton.getText().contains(rowStr) || (Integer.parseInt(tempButton.getText().substring(1)) < Integer.parseInt(col))) {
-//						tempButton.setDisable(true);
-//					}
-//				}
-//			}
-//			//if they can place the coord to the left but not right
-//			else {
-//				for (Button tempButton: gridButtons){
-//					if(tempButton.getText().equals(coord)){
-//						tempButton.setDisable(true);
-//					}
-//					//if it is not in that row, then disable the button
-//					if (!tempButton.getText().contains(rowStr) || (Integer.parseInt(tempButton.getText().substring(1)) > Integer.parseInt(col))) {
-//						tempButton.setDisable(true);
-//					}
-//				}
-//			}
-//
-//		}
-//	}
 
 	public void searchGridButtons(Ship ship, Player player){
 		//AtomicReference<Integer> keepCount = new AtomicReference<>(0);
@@ -754,7 +793,7 @@ public class GuiClient extends Application{
 			//System.out.println("inside for loop\n");
 			tempButton.setOnAction(d -> {
 				game.checkFirstClick(tempButton.getText(), ship, false);
-				System.out.print("This is the tempButton.getText() inside searchGridButtons " + tempButton.getText() + "\n");
+				//System.out.print("This is the tempButton.getText() inside searchGridButtons " + tempButton.getText() + "\n");
 
 				if (game.isShipFilled && shipPlacedCount != 5) {
 					ship.getCoordinates().add(tempButton.getText());
@@ -812,24 +851,17 @@ public class GuiClient extends Application{
 				}
 
 				if (!game.isShipFilled) {
-					System.out.println("inside try again pick new coordinate\n");
 					popUpMessage.setText("Try Again! Pick New Coordinate");
 					setDisableGridPane("disable");
 					vertical.setDisable(false);
 					horizontal.setDisable(false);
 				}
 			});
-
 		}
 	}
 
 	public void disableShipCoords(){
-		System.out.println("inside disable ship coords");
 		// disable the ship coordinates, so it cannot be reselected
-
-//		game.currentPlayer.allCoordinates.add("F4");
-
-		System.out.println("AllCoordinates inside disableShipCoords is: " + game.currentPlayer.allCoordinates);
 
 		for (Button button : setShipButtons) {
 			for (int i = 0; i < game.currentPlayer.allCoordinates.size(); i++) {
@@ -839,8 +871,6 @@ public class GuiClient extends Application{
 
 				if (button.getText().equals(game.currentPlayer.allCoordinates.get(i))) {
 					button.setStyle("-fx-background-color: green; -fx-text-fill:black;");
-					System.out.println("inside found ship coord");
-					System.out.println("here is the button we are disabling: " + button.getText());
 					button.setDisable(true);
 				}
 			}
@@ -849,6 +879,7 @@ public class GuiClient extends Application{
 
 	// waiting for player to connect screen
 	public void waitingScreen (Stage primaryStage) throws Exception{
+		System.out.println("INSIDE WAITING SCREEN!!! ALL COORDINATES: " + game.currentPlayer.allCoordinates+"\n\n");
 		Text title = new Text("Waiting for player to connect...");
 
 		BorderPane pane = new BorderPane();
@@ -858,11 +889,264 @@ public class GuiClient extends Application{
 		primaryStage.setScene(mainScene);
 		primaryStage.setMaximized(true);
 		primaryStage.show();
+	}
+
+	public void userGameScreen(Stage primaryStage, int clientNumber){
+		System.out.println("INSIDE USER GAME SCREEN FIRST CONNECT BOOLEAN: " + clientConnection.clientGame.firstConnect+"\n\n");
+		//System.out.println("USER GAME SCREEN!!! ALL COORDINATES: " + game.currentPlayer.allCoordinates+"\n\n");
+		primaryStage.setTitle("Player: " + clientNumber);
+		Text headerOp = new Text ("OPPONENT");
+		headerOp.setFont(Font.font("Courier New", FontWeight.BOLD, 20));
+		//headerAI.setTranslateX(-30);
+		headerOp.setUnderline(true);
+
+		Text headerYourMap = new Text ("YOUR MAP");
+		headerYourMap.setFont(Font.font("Courier New", FontWeight.BOLD, 20));
+		//headerYourMap.setTranslateX(-30);
+		headerYourMap.setUnderline(true);
+
+		popUpMessage2.setFill(Color.RED);
+		popUpMessage2.setFont(Font.font("Courier New", FontWeight.BOLD, 20));
+
+		Text message = new Text("Choose coordinate\nto attack");
+		Text redMessage = new Text("= Miss");
+		Text greenMessage = new Text("= Hit");
+
+		Button redButton = new Button();
+		redButton.setDisable(true);
+		redButton.setStyle("-fx-background-color: red; -fx-text-fill:black;");
+		//redButton.setStyle("-fx-background-radius: 40;");
+		redButton.setPrefWidth(40);
+		redButton.setPrefHeight(40);
+
+		Button greenButton = new Button();
+		greenButton.setDisable(true);
+		greenButton.setStyle("-fx-background-color: green; -fx-text-fill:black;");
+		//greenButton.setStyle("-fx-background-radius: 40;");
+		greenButton.setPrefWidth(40);
+		greenButton.setPrefHeight(40);
+
+//		GridPane computerCoordsGrid = new GridPane();
+
+//		computerCoordsGrid.setTranslateY(-30);
+//		computerCoordsGrid.setTranslateX(180);
+		opponentCoordsGrid.setAlignment(Pos.CENTER);
+		opponentCoordsGrid.setHgap(5);
+		opponentCoordsGrid.setVgap(5);
+
+		playerCoordsGrid.setAlignment(Pos.CENTER);
+		playerCoordsGrid.setHgap(5);
+		playerCoordsGrid.setVgap(5);
+
+		populateGrid(opponentCoords, opponentCoordsGrid, 45);
+		populateGrid(playerCoords, playerCoordsGrid,45);
+
+
+		attackOpponent.setStyle("-fx-background-radius: 40;");
+		attackOpponent.setFont(Font.font("Courier New", FontWeight.BOLD, 20));
+		attackOpponent.setPrefWidth(220);
+		attackOpponent.setPrefHeight(60);
+		attackOpponent.setDisable(true);
+
+		redMessage.setFont(Font.font("Courier New", FontWeight.NORMAL, 24));
+		greenMessage.setFont(Font.font("Courier New", FontWeight.NORMAL, 24));
+		HBox redKey = new HBox(8,redButton, redMessage );
+		HBox greenKey = new HBox(8,greenButton, greenMessage);
+		redKey.setAlignment(Pos.CENTER);
+		greenKey.setAlignment(Pos.CENTER);
+		VBox key = new VBox(15, redKey, greenKey);
+		greenKey.setTranslateX(-6);
+		message.setFont(Font.font("Courier New", FontWeight.BOLD, 24));
+		message.setTextAlignment(TextAlignment.CENTER);
+
+		VBox keyAndMessage = new VBox(20, message,key, popUpMessage);
+		VBox opponentGridVbox = new VBox(20, headerOp, opponentCoordsGrid, attackOpponent);
+		VBox playerGridVbox = new VBox(20, headerYourMap, playerCoordsGrid);
+
+		opponentGridVbox.setAlignment(Pos.CENTER);
+		playerGridVbox.setAlignment(Pos.CENTER);
+
+		keyAndMessage.setTranslateY(130);
+		keyAndMessage.setTranslateX(-10);
+
+		HBox all = new HBox(15, opponentGridVbox, keyAndMessage, playerGridVbox);
+
+		opponentGridVbox.setTranslateX(-30);
+		playerGridVbox.setTranslateX(20);
+		playerGridVbox.setTranslateY(-40);
+
+		all.setTranslateX(90);
+		all.setTranslateY(-10);
+
+		userGamePane = new BorderPane();
+		userGamePane.setCenter(all);
+
+		userGamePane.setStyle("-fx-background-color: rgb(98,170,237);");
+
+		if (game.currentPlayer.currPlayerTurn) {
+			// enable grid here
+			blackOutGrid("enable", playerHits, opponentCoords);
+			blackOutGrid("disable", opponentHits, playerCoords);
+		}
+		else {
+			// disable grid here
+			blackOutGrid("disable", playerHits, opponentCoords);
+			blackOutGrid("enable", opponentHits, playerCoords);
+		}
+
+		for (Button button : opponentCoords) {
+			button.setOnAction(e->{
+				playerHits.add(button.getText());
+				game.currentPlayer.sentCoordinate.add(button.getText());
+//				game.opponent.
+				attackOpponent.setDisable(false);
+
+				button.setStyle("-fx-background-color: blue; -fx-text-fill:black;");
+				blackOutGrid("disable", playerHits, opponentCoords);
+
+				attackOpponent.setOnAction(d->{
+					System.out.println("INSIDE ATTACK BUTTON!!! ALL COORDINATES: " + game.currentPlayer.allCoordinates+"\n\n");
+					String coordinateChosen = button.getText();
+					tempPlayerSendCoordinate = button.getText();
+					//System.out.println("this is the button.getText() before the checkAttack: " + button.getText());
+					//if it returns true, let them play again and change coordinate to green
+					if (game.checkAttack(coordinateChosen, false)) {
+						button.setStyle("-fx-background-color: green; -fx-text-fill:black;");
+						button.setDisable(true);
+						popUpMessage2.setText("You hit a ship!\nChoose a new coordinate");
+						popUpMessage2.setTextAlignment(TextAlignment.CENTER);
+						blackOutGrid("disable", opponentHits, playerCoords);
+						blackOutGrid("enable", playerHits, opponentCoords);
+
+						//System.out.println("here is the twoShip hitCount: " + game.computerPlayer.twoShip.hitCount);
+
+						if (game.opponent.twoShip.hitCount == game.opponent.twoShip.shipLength &&
+								!game.opponent.twoShip.shipAlreadySunk){
+							//System.out.println("YOU SUNK 2 SHIP\n\n");
+							game.opponent.twoShip.shipAlreadySunk = true;
+							//alert message
+							Alert alert = new Alert(Alert.AlertType.INFORMATION);
+							alert.setTitle("You sunk their 2 ship!");
+							alert.setContentText("You sunk their 2 ship!, please continue choosing new coordinates to sink another");
+							alert.showAndWait();
+						}
+
+						if (game.opponent.threeShip.hitCount == game.opponent.threeShip.shipLength &&
+								!game.opponent.threeShip.shipAlreadySunk){
+							game.opponent.threeShip.shipAlreadySunk = true;
+							//alert message
+							Alert alert = new Alert(Alert.AlertType.INFORMATION);
+							alert.setTitle("You sunk their 3 ship!");
+							alert.setContentText("You sunk their 3 ship!, please continue choosing new coordinates to sink another");
+							alert.showAndWait();
+						}
+
+						if (game.opponent.threeShip2.hitCount == game.opponent.threeShip2.shipLength &&
+								!game.opponent.threeShip2.shipAlreadySunk) {
+							game.opponent.threeShip2.shipAlreadySunk = true;
+							//alert message
+							Alert alert = new Alert(Alert.AlertType.INFORMATION);
+							alert.setTitle("You sunk their 3 ship!");
+							alert.setContentText("You sunk their 3 ship!, please continue choosing new coordinates to sink another");
+							alert.showAndWait();
+						}
+
+						if (game.opponent.fourShip.hitCount == game.opponent.fourShip.shipLength &&
+								!game.opponent.fourShip.shipAlreadySunk){
+							game.opponent.fourShip.shipAlreadySunk = true;
+							//alert message
+							Alert alert = new Alert(Alert.AlertType.INFORMATION);
+							alert.setTitle("You sunk their 4 ship!");
+							alert.setContentText("You sunk their 4 ship!, please continue choosing new coordinates to sink another");
+							alert.showAndWait();
+						}
+
+						if (game.opponent.fiveShip.hitCount == game.opponent.fiveShip.shipLength &&
+								!game.opponent.fiveShip.shipAlreadySunk){
+							game.opponent.fiveShip.shipAlreadySunk = true;
+							//alert message
+							Alert alert = new Alert(Alert.AlertType.INFORMATION);
+							alert.setTitle("You sunk their 5 ship!");
+							alert.setContentText("You sunk their 5 ship, please continue choosing new coordinates to sink another");
+							alert.showAndWait();
+						}
+
+						if (game.checkWinner().equals("currentPlayer")) {
+							//do a, you win screen
+							clientConnection.clientGame = game;
+							clientConnection.send(game);
+							userWonScreen(primaryStage, userGamePane);
+						}
+//						else if (game.checkWinner().equals("otherPlayer")) {
+//							// do you lost screen
+//							userLostScreen (primaryStage, pane);
+//						}
+					}
+					//missed ship
+					else {
+						System.out.println("ELSE MISS STATEMENT INSIDE GAME SCREEN\n\n");
+						System.out.println("OPPONENTS COORDINATES LIST: " + game.opponent.allCoordinates+"\n\n");
+						button.setStyle("-fx-background-color: red; -fx-text-fill:black;");
+						popUpMessage2.setText("You missed!\n Opponent's turn");
+						popUpMessage2.setTextAlignment(TextAlignment.CENTER);
+
+						//disable grid
+						blackOutGrid("disable", playerHits, opponentCoords);
+						blackOutGrid("enable", opponentHits, playerCoords);
+
+						attackOpponent.setDisable(true);
+						game.currentPlayer.currPlayerTurn = false;
+
+						clientConnection.clientGame = game;
+//						System.out.println("inside usergame screen, game.firstconnect " + game.firstConnect);
+//						System.out.println("inside usergame screen, clientConnection.clientgame.firstconnect " + clientConnection.clientGame.firstConnect);
+
+						System.out.println("INSIDE USERGAMESCREEN ALLCOORDINATES: " + game.currentPlayer.allCoordinates);
+						System.out.println("INSIDE USERGAMESCREEN ALLCOORDINATES FOR CLIENT CONNECTION: " + clientConnection.clientGame.currentPlayer.allCoordinates);
+
+						System.out.println("\n\n\n");
+
+						System.out.println("INSIDE USERGAMESCREEN FIRST CONNECT GAME: " + game.firstConnect);
+						System.out.println("INSIDE USERGAMESCREEN FIRST CONNECT FOR  CLIENTCONNECTION: " + clientConnection.clientGame.firstConnect);
+
+						System.out.println("INSIDE USERGAMESCREEN OTHER PLAYER CONNECTED GAME: " + game.otherPlayerConnected);
+						System.out.println("INSIDE USERGAMESCREEN other player connected FOR  CLIENTCONNECTION: " + clientConnection.clientGame.otherPlayerConnected);
+
+						clientConnection.send(game);
+
+						// based off this boolean do the same checks as above
+//						opponentHits.add(game.opponent.sentCoordinate.getLast()); //if they miss, still add
+
+//						//find miss and hit?, disable it and set color to red
+//						for (int i = 0; i < playerCoords.size(); i++) {
+//							if (playerCoords.get(i).getText().equals(button.getText())) {
+//								playerCoords.get(i).setDisable(true);
+//								playerCoords.get(i).setStyle("-fx-background-color: red; -fx-text-fill:black;");
+//							}
+//						}
+
+//						popUpMessage2.setText("Opponent Missed!\nYour Turn!");
+//						popUpMessage2.setTextAlignment(TextAlignment.CENTER);
+//						blackOutGrid("disable", opponentHits, playerCoords);
+//						blackOutGrid("enable", playerHits, opponentCoords);
+						//not true, set that coordinate to red
+					}
+				});
+			});
+		}
+
+		//userGamePane = pane;
+
 		//return new Scene(pane);
+		Scene gameScene = new Scene(userGamePane, 1460, 800);
+		primaryStage.setScene(gameScene);
+		primaryStage.setMaximized(true);
+		primaryStage.setResizable(true);
+		primaryStage.show();
 	}
 
 	// game screen
-	public void gameScreen (Stage primaryStage) throws Exception {
+	public void computerGameScreen (Stage primaryStage) throws Exception {
 		Text headerAI = new Text ("AI MAP");
 		headerAI.setFont(Font.font("Courier New", FontWeight.BOLD, 20));
 		//headerAI.setTranslateX(-30);
@@ -963,7 +1247,7 @@ public class GuiClient extends Application{
 
 				attackComputer.setOnAction(d->{
 					String coordinateChosen = button.getText();
-					System.out.println("this is the button.getText() before the checkAttack: " + button.getText());
+					//System.out.println("this is the button.getText() before the checkAttack: " + button.getText());
 					//if it returns true, let them play again and change coordinate to green
 					if (game.checkAttack(coordinateChosen, false)) {
 						button.setStyle("-fx-background-color: green; -fx-text-fill:black;");
@@ -973,11 +1257,11 @@ public class GuiClient extends Application{
 						blackOutGrid("disable", computerHits, playerCoords);
 						blackOutGrid("enable", playerHits, computerCoords);
 
-						System.out.println("here is the twoShip hitCount: " + game.computerPlayer.twoShip.hitCount);
+						//System.out.println("here is the twoShip hitCount: " + game.computerPlayer.twoShip.hitCount);
 
 						if (game.computerPlayer.twoShip.hitCount == game.computerPlayer.twoShip.shipLength &&
 								!game.computerPlayer.twoShip.shipAlreadySunk){
-							System.out.println("YOU SUNK 2 SHIP\n\n");
+							//System.out.println("YOU SUNK 2 SHIP\n\n");
 							game.computerPlayer.twoShip.shipAlreadySunk = true;
 							//alert message
 							Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -988,7 +1272,7 @@ public class GuiClient extends Application{
 
 						if (game.computerPlayer.threeShip.hitCount == game.computerPlayer.threeShip.shipLength &&
 								!game.computerPlayer.threeShip.shipAlreadySunk){
-							System.out.println("YOU SUNK 3 SHIP\n\n");
+							//System.out.println("YOU SUNK 3 SHIP\n\n");
 							game.computerPlayer.threeShip.shipAlreadySunk = true;
 							//alert message
 							Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -1000,7 +1284,7 @@ public class GuiClient extends Application{
 						if (game.computerPlayer.threeShip2.hitCount == game.computerPlayer.threeShip2.shipLength &&
 								!game.computerPlayer.threeShip2.shipAlreadySunk){
 							game.computerPlayer.threeShip2.shipAlreadySunk = true;
-							System.out.println("YOU SUNK 3.2 SHIP\n\n");
+							//System.out.println("YOU SUNK 3.2 SHIP\n\n");
 							//alert message
 							Alert alert = new Alert(Alert.AlertType.INFORMATION);
 							alert.setTitle("You sunk their 3 ship!");
@@ -1010,7 +1294,7 @@ public class GuiClient extends Application{
 
 						if (game.computerPlayer.fourShip.hitCount == game.computerPlayer.fourShip.shipLength &&
 								!game.computerPlayer.fourShip.shipAlreadySunk){
-							System.out.println("YOU SUNK 4 SHIP\n\n");
+							//System.out.println("YOU SUNK 4 SHIP\n\n");
 							game.computerPlayer.fourShip.shipAlreadySunk = true;
 							//alert message
 							Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -1022,7 +1306,7 @@ public class GuiClient extends Application{
 						if (game.computerPlayer.fiveShip.hitCount == game.computerPlayer.fiveShip.shipLength &&
 								!game.computerPlayer.fiveShip.shipAlreadySunk){
 							game.computerPlayer.fiveShip.shipAlreadySunk = true;
-							System.out.println("YOU SUNK 5 SHIP\n\n");
+							//System.out.println("YOU SUNK 5 SHIP\n\n");
 							//alert message
 							Alert alert = new Alert(Alert.AlertType.INFORMATION);
 							alert.setTitle("You sunk their 5 ship!");
@@ -1032,12 +1316,12 @@ public class GuiClient extends Application{
 
 						if (game.checkWinner().equals("currentPlayer")) {
 							//do a, you win screen
-							userWonScreen(primaryStage, pane);
+							userWonScreen(primaryStage, userGamePane);
 						}
-						else if (game.checkWinner().equals("otherPlayer")) {
-							// do you lost screen
-							userLostScreen (primaryStage, pane);
-						}
+//						else if (game.checkWinner().equals("otherPlayer")) {
+//							// do you lost screen
+//							userLostScreen (primaryStage, pane);
+//						}
 					}
 					//missed ship
 					else {
@@ -1088,7 +1372,7 @@ public class GuiClient extends Application{
 		Scene gameScene = new Scene(pane, 1460, 800);
 		primaryStage.setScene(gameScene);
 		primaryStage.setMaximized(true);
-		primaryStage.setResizable(false);
+		primaryStage.setResizable(true);
 		primaryStage.show();
 	}
 
@@ -1178,6 +1462,7 @@ public class GuiClient extends Application{
 			@Override
 			public void handle(ActionEvent actionEvent) {
 				try {
+					game = new BattleShipGame();
 					welcomeScreen(primaryStage);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
@@ -1219,6 +1504,7 @@ public class GuiClient extends Application{
 			@Override
 			public void handle(ActionEvent actionEvent) {
                 try {
+					game = new BattleShipGame();
                     welcomeScreen(primaryStage);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
